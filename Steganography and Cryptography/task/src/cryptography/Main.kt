@@ -2,6 +2,7 @@ package cryptography
 import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
+import kotlin.experimental.xor
 
 fun main() {
 
@@ -30,6 +31,10 @@ fun hideMessage() {
     val outputFile = readLine()!!
     println("Message to hide:")
     val message = readLine()!!.encodeToByteArray().toMutableList()
+    println("Password:")
+    val password = readLine()!!.encodeToByteArray().toList()
+    encryptMessage(message, password)
+
     message.addAll(endOfMessage)
 
     val output = File(outputFile)
@@ -61,6 +66,18 @@ fun hideMessage() {
     println("Message saved in $outputFile image.")
 }
 
+
+fun encryptMessage(message: MutableList<Byte>, password:List<Byte>) {
+    var j = 0
+
+    for (i in 0 until message.size) {
+        message[i] = message[i] xor password[j]
+        j++
+        if (j == password.size) j = 0
+    }
+}
+
+
 fun encodeMessage(message: MutableList<Byte>, image: BufferedImage) {
     var position = 0
     var currentBit = 7
@@ -89,6 +106,7 @@ fun encodeMessage(message: MutableList<Byte>, image: BufferedImage) {
     }
 }
 
+
 fun showMessage() {
 
     val input: File
@@ -104,14 +122,29 @@ fun showMessage() {
         return
     }
 
+    println("Password:")
+    val password = readLine()!!.encodeToByteArray().toList()
     val message = decodeMessage(image)
+
+    decryptMessage(message, password)
+
     println("""
         Message:
-        $message
+        ${message.toByteArray().toString(Charsets.UTF_8)}
     """.trimIndent())
 }
 
-fun decodeMessage(image: BufferedImage): String {
+fun decryptMessage(message: MutableList<Byte>, password: List<Byte>) {
+    var j = 0
+
+    for (i in 0 until message.size) {
+        message[i] = message[i] xor password[j]
+        j++
+        if (j == password.size) j = 0
+    }
+}
+
+fun decodeMessage(image: BufferedImage): MutableList<Byte> {
     var rgb: Int
     var lastBit: Int
     var currentByte = 0
@@ -134,12 +167,11 @@ fun decodeMessage(image: BufferedImage): String {
 
             if (checkEndOfMessage(message)) {
                 return message.subList(0, message.lastIndex - 3)
-                    .toByteArray().toString(Charsets.UTF_8)
             }
         }
     }
 
-    return "oops"
+    return "oops".toByteArray().toMutableList()
 }
 
 fun checkEndOfMessage(message: MutableList<Byte>): Boolean {
@@ -148,7 +180,6 @@ fun checkEndOfMessage(message: MutableList<Byte>): Boolean {
 
     return if (message.size > 3) {
         val end = message.subList(message.lastIndex - 3, message.lastIndex)
-            .toByteArray()
         end[0] == zero && end[1] == zero && end[2] == three
     } else false
 }
